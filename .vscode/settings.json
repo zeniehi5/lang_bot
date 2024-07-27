@@ -1,0 +1,11 @@
+{
+    "python.analysis.extraPaths": [
+        "./loader",
+        "./response_generator",
+        "./retriever",
+        "./chat_bot",
+        "./contents",
+        "./splitter"
+    ],
+    "sqltools.useNodeRuntime": true
+}

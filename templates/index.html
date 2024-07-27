@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 50px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background-color: #fff;
+            border-radius: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        .chatbox {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+            height: 400px;
+            overflow-y: scroll;
+            background-color: #f9f9f9;
+            border-radius: 20px;
+        }
+        .chatbox .message {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        .chatbox .message.user {
+            justify-content: flex-end;
+        }
+        .chatbox .message.bot {
+            justify-content: flex-start;
+        }
+        .chatbox .message div {
+            max-width: 70%;
+            padding: 10px;
+            border-radius: 20px;
+            margin: 0;
+        }
+        .chatbox .message p {
+            max-width: 70%;
+            padding: 10px;
+            border-radius: 20px;
+            margin: 0;
+        }
+        .chatbox .message.user p {
+            background-color: #007aff;
+            color: #fff;
+            border-bottom-right-radius: 0;
+        }
+        .chatbox .message.bot div {
+            background-color: #e5e5ea;
+            color: #000;
+            border-bottom-left-radius: 0;
+        }
+        .input-group {
+            display: flex;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        .input-group input[type="file"] {
+            flex: 1;
+            border-radius: 20px;
+            padding: 5px;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        .input-group button {
+            border: none;
+            background-color: #007aff;
+            color: #fff;
+            font-size: 16px;
+            padding: 10px 20px;
+            border-radius:30px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-left: 10px;
+        }
+        .input-group button:hover {
+            background-color: #005bb5;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 4px solid #3498db;
+            width: 20px;
+            height: 20px;
+            animation: spin 2s linear infinite;
+            display: none;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        input[type="text"] {
+            width: calc(100% - 60px);
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            margin-bottom: 10px;
+        }
+        button.ask-button {
+            width: 50px;
+            height: 40px;
+            border: none;
+            border-radius: 30px;
+            padding: 10px 20px;
+            background-color: #007aff;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button.ask-button:hover {
+            background-color: #005bb5;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/showdown/dist/showdown.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Chatbot</h1>
+        <div class="input-group">
+            <input type="file" id="file" />
+            <button onclick="loadDocuments()">UP</button>
+            <div class="loader" id="loader"></div>
+        </div>
+        <div class="chatbox" id="chatbox">
+            <div class="message bot"><div><strong>Chatbot:</strong> Please load a document and ask a question.</div></div>
+        </div>
+        <div class="input-group">
+            <input type="text" id="question" placeholder="Type your question here..." onkeydown="handleKeyDown(event)"/>
+            <button onclick="askQuestion()" class="ask-button">GO</button>
+            <div class="loader" id="responseLoader"></div>
+        </div>
+    </div>
+    
+    <script>
+        function loadDocuments() {
+            const fileInput = document.getElementById('file');
+            const file = fileInput.files[0];
+            const loader = document.getElementById('loader');
+
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            loader.style.display = 'inline-block';
+
+            fetch('/load_documents', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const chatbox = document.getElementById('chatbox');
+                loader.style.display = 'none';
+                if (data.error) {
+                    chatbox.innerHTML += `<div class="message bot"><div><strong>Error:</strong> ${data.error}</div></div>`;
+                } else {
+                    chatbox.innerHTML += `<div class="message bot"><div><strong>Chatbot:</strong> ${data.message}</div></div>`;
+                }
+                chatbox.scrollTop = chatbox.scrollHeight;
+            })
+            .catch(error => {
+                loader.style.display = 'none';
+                console.error('Error:', error);
+            });
+        }
+
+        function handleKeyDown(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                askQuestion();
+            }
+        }
+        
+        function askQuestion() {
+            const questionInput = document.getElementById('question');
+            const question = questionInput.value;
+            const loader = document.getElementById('responseLoader');
+
+            loader.style.display = 'inline-block';
+
+            fetch('/get_response', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ question: question }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                const chatbox = document.getElementById('chatbox');
+                loader.style.display = 'none';
+                const converter = new showdown.Converter();
+                if (data.error) {
+                    chatbox.innerHTML += `<div class="message bot"><div><strong>Error:</strong> ${data.error}</div></div>`;
+                } else {
+                    chatbox.innerHTML += `<div class="message user"><p><strong>You:</strong> ${question}</p></div>`;
+                    const markdownResponse = converter.makeHtml(data.response);
+                    console.log("response : ", markdownResponse);
+                    chatbox.innerHTML += `<div class="message bot"><div><strong>Chatbot:</strong>${markdownResponse}</div></div>`;
+                }
+                questionInput.value = '';
+                chatbox.scrollTop = chatbox.scrollHeight;
+            })
+            .catch(error => {
+                loader.style.display = 'none';
+                console.error('Error:', error);
+            });
+        }
+    </script>
+</body>
+</html>
